@@ -1,0 +1,19 @@
+server:
+  port: 8081
+
+app:
+  mail:
+    enabled: false
+    retry-count: 1
+
+  upload:
+    max-file-size: 25MB
+    allowed-extensions:
+      - jpg
+      - png
+      - pdf
+      - docx
+
+logging:
+  level:
+    kz.iitu: DEBUG
