@@ -31,6 +31,12 @@
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
+        <!-- Thymeleaf for Lab 05 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
         <!-- Validation for Lab 03 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
