@@ -1,3 +1,4 @@
+
 package kz.iitu.springlab.catalog;
 
 import org.springframework.stereotype.Service;
@@ -32,6 +33,11 @@ public class BookService {
         return repository.findById(id);
     }
 
+    public Book requireById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new BookNotFoundException(id));
+    }
+
     public Book create(Book book) {
         return repository.save(
                 new Book(
@@ -52,33 +58,23 @@ public class BookService {
     }
 
     public Optional<Book> patch(Long id, BookPatchRequest patch) {
+        return repository.findById(id).map(existingBook -> {
 
-        return repository.findById(id)
-                .map(existingBook -> {
+            String newTitle = patch.title() != null
+                    ? patch.title()
+                    : existingBook.title();
 
-                    String newTitle =
-                            patch.title() != null
-                                    ? patch.title()
-                                    : existingBook.title();
+            String newAuthor = patch.author() != null
+                    ? patch.author()
+                    : existingBook.author();
 
-                    String newAuthor =
-                            patch.author() != null
-                                    ? patch.author()
-                                    : existingBook.author();
+            int newYear = patch.year() != null
+                    ? patch.year()
+                    : existingBook.year();
 
-                    int newYear =
-                            patch.year() != null
-                                    ? patch.year()
-                                    : existingBook.year();
-
-                    Book updatedBook = new Book(
-                            id,
-                            newTitle,
-                            newAuthor,
-                            newYear
-                    );
-
-                    return repository.save(updatedBook);
-                });
+            return repository.save(
+                    new Book(id, newTitle, newAuthor, newYear)
+            );
+        });
     }
 }

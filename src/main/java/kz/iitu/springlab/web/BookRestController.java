@@ -1,8 +1,10 @@
+
 package kz.iitu.springlab.web;
 
 import kz.iitu.springlab.catalog.Book;
 import kz.iitu.springlab.catalog.BookPatchRequest;
 import kz.iitu.springlab.catalog.BookService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +21,6 @@ public class BookRestController {
         this.service = service;
     }
 
-    // GET /api/books?author=...&limit=10
     @GetMapping
     public ResponseEntity<List<Book>> findAll(
             @RequestParam(required = false) String author,
@@ -33,49 +34,40 @@ public class BookRestController {
         return ResponseEntity.ok(books);
     }
 
-    // GET /api/books/{id}
     @GetMapping("/{id}")
     public ResponseEntity<Book> findById(@PathVariable Long id) {
-        return service.findById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        Book book = service.requireById(id);
+        return ResponseEntity.ok(book);
     }
 
-    // POST /api/books
     @PostMapping
     public ResponseEntity<Book> create(@RequestBody Book book) {
         Book created = service.create(book);
 
         URI location = URI.create("/api/books/" + created.id());
 
-        return ResponseEntity
-                .created(location)
-                .body(created);
+        return ResponseEntity.created(location).body(created);
     }
 
-    // PUT /api/books/{id}
     @PutMapping("/{id}")
     public ResponseEntity<Book> replace(
             @PathVariable Long id,
             @RequestBody Book book
     ) {
-        if (service.findById(id).isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+        service.requireById(id);
 
-        Book replacement = new Book(
-                id,
-                book.title(),
-                book.author(),
-                book.year()
+        Book saved = service.save(
+                new Book(
+                        id,
+                        book.title(),
+                        book.author(),
+                        book.year()
+                )
         );
-
-        Book saved = service.save(replacement);
 
         return ResponseEntity.ok(saved);
     }
 
-    // DELETE /api/books/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (!service.delete(id)) {
@@ -85,12 +77,13 @@ public class BookRestController {
         return ResponseEntity.noContent().build();
     }
 
-    // PATCH /api/books/{id}
     @PatchMapping("/{id}")
     public ResponseEntity<Book> patch(
             @PathVariable Long id,
             @RequestBody BookPatchRequest patch
     ) {
+        service.requireById(id);
+
         return service.patch(id, patch)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
