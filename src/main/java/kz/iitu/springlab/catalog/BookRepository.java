@@ -1,3 +1,4 @@
+
 package kz.iitu.springlab.catalog;
 
 import org.springframework.stereotype.Repository;
@@ -41,7 +42,9 @@ public class BookRepository {
                 id,
                 book.title(),
                 book.author(),
-                book.year()
+                book.year(),
+                book.genre(),
+                book.createdAt()
         );
 
         books.put(id, savedBook);

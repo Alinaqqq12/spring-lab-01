@@ -38,13 +38,30 @@ public class BookService {
                 .orElseThrow(() -> new BookNotFoundException(id));
     }
 
+    private void checkDuplicate(Book book, Long excludeId) {
+        boolean duplicate = repository.findAll().stream()
+                .anyMatch(existing ->
+                        !existing.id().equals(excludeId)
+                                && existing.title().equalsIgnoreCase(book.title())
+                                && existing.author().equalsIgnoreCase(book.author())
+                );
+
+        if (duplicate) {
+            throw new DuplicateTitleException(book.title());
+        }
+    }
+
     public Book create(Book book) {
+        checkDuplicate(book, null);
+
         return repository.save(
                 new Book(
                         null,
                         book.title(),
                         book.author(),
-                        book.year()
+                        book.year(),
+                        book.genre(),
+                        book.createdAt()
                 )
         );
     }
@@ -53,10 +70,28 @@ public class BookService {
         return repository.save(book);
     }
 
+    public Book update(Long id, Book book) {
+        Book existing = requireById(id);
+
+        checkDuplicate(book, id);
+
+        return repository.save(
+                new Book(
+                        id,
+                        book.title(),
+                        book.author(),
+                        book.year(),
+                        book.genre(),
+                        existing.createdAt()
+                )
+        );
+    }
+
     public boolean delete(Long id) {
         return repository.deleteById(id);
     }
 
+    // PATCH from previous laboratory work
     public Optional<Book> patch(Long id, BookPatchRequest patch) {
         return repository.findById(id).map(existingBook -> {
 
@@ -72,9 +107,18 @@ public class BookService {
                     ? patch.year()
                     : existingBook.year();
 
-            return repository.save(
-                    new Book(id, newTitle, newAuthor, newYear)
+            Book updated = new Book(
+                    id,
+                    newTitle,
+                    newAuthor,
+                    newYear,
+                    existingBook.genre(),
+                    existingBook.createdAt()
             );
+
+            checkDuplicate(updated, id);
+
+            return repository.save(updated);
         });
     }
 }
