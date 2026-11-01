@@ -1,58 +1,73 @@
 
 package kz.iitu.springlab.catalog;
 
-import org.springframework.stereotype.Repository;
+import kz.iitu.springlab.web.Genre;
 
-import java.util.ArrayList;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
-@Repository
-public class BookRepository {
+public interface BookRepository extends JpaRepository<Book, Long> {
 
-    private final ConcurrentHashMap<Long, Book> books =
-            new ConcurrentHashMap<>();
+    // Lab 8: Five derived queries
 
-    private final AtomicLong sequence = new AtomicLong();
+    List<Book> findByGenre(Genre genre);
 
-    public BookRepository() {
-        save(new Book(null, "Effective Java", "Joshua Bloch", 2018));
-        save(new Book(null, "Clean Code", "Robert Martin", 2008));
-        save(new Book(null, "Spring in Action", "Craig Walls", 2022));
-    }
+    List<Book> findByTitleContainingIgnoreCase(String fragment);
 
-    public List<Book> findAll() {
-        return new ArrayList<>(books.values());
-    }
+    List<Book> findByYearBetweenOrderByYearDesc(int from, int to);
 
-    public Optional<Book> findById(Long id) {
-        return Optional.ofNullable(books.get(id));
-    }
+    List<Book> findTop3ByGenreOrderByYearDesc(Genre genre);
 
-    public Book save(Book book) {
-        Long id = book.id();
+    long countByAuthorEntity_Name(String name);
 
-        if (id == null) {
-            id = sequence.incrementAndGet();
-        }
+    // Compatibility with earlier work
+    long countByAuthor(String author);
 
-        Book savedBook = new Book(
-                id,
-                book.title(),
-                book.author(),
-                book.year(),
-                book.genre(),
-                book.createdAt()
-        );
+    // JPQL search
+    @Query("""
+            select b from Book b
+            where b.genre = :genre
+              and b.year >= :year
+            order by b.title
+            """)
+    List<Book> search(
+            @Param("genre") Genre genre,
+            @Param("year") int year
+    );
 
-        books.put(id, savedBook);
+    // JPQL bulk update
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            update Book b
+            set b.archived = true
+            where b.year < :year
+            """)
+    int archiveOlderThan(@Param("year") int year);
 
-        return savedBook;
-    }
+    // Database pagination
+    Page<Book> findByGenre(Genre genre, Pageable pageable);
 
-    public boolean deleteById(Long id) {
-        return books.remove(id) != null;
-    }
+    // Slice query - no total count required
+    Slice<Book> findSliceByTitleContainingIgnoreCase(
+            String fragment,
+            Pageable pageable
+    );
+
+    // Fetch join to solve N+1
+    @Query("""
+            select b from Book b
+            join fetch b.authorEntity
+            """)
+    List<Book> findAllWithAuthor();
+
+    // Individual Variant 1: Publisher
+    List<Book> findByPublisherName(String name);
 }

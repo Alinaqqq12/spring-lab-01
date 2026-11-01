@@ -1,3 +1,4 @@
+
 server:
   port: 8081
 
@@ -17,3 +18,10 @@ app:
 logging:
   level:
     kz.iitu: DEBUG
+    org.hibernate.stat: WARN
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        generate_statistics: true

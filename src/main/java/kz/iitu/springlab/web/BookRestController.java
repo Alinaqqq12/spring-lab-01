@@ -18,45 +18,56 @@ import kz.iitu.springlab.web.dto.BookMapper;
 import kz.iitu.springlab.web.dto.BookRequest;
 import kz.iitu.springlab.web.dto.BookResponse;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 @Tag(
         name = "Books",
-        description = "Book catalogue REST API - Laboratory Work 7"
+        description = "Book catalogue REST API - Labs 7 and 8"
 )
 @RestController
 @RequestMapping("/api/books")
 public class BookRestController {
 
+    private static final Set<String> ALLOWED_SORT_FIELDS =
+            Set.of("id", "title", "year", "genre", "createdAt");
+
     private final BookService service;
     private final BookMapper mapper;
 
-    public BookRestController(BookService service, BookMapper mapper) {
+    public BookRestController(
+            BookService service,
+            BookMapper mapper
+    ) {
         this.service = service;
         this.mapper = mapper;
     }
 
-    // Previous labs: original collection endpoint
+    // Previous laboratories: original collection endpoint
     @Operation(
             summary = "Get all books",
-            description = "Returns books with optional author filtering and limit"
+            description = "Original endpoint with optional author filtering"
     )
-    @ApiResponse(responseCode = "200", description = "Books retrieved")
+    @ApiResponse(
+            responseCode = "200",
+            description = "Books retrieved successfully"
+    )
     @GetMapping(params = "!page")
     public ResponseEntity<List<BookResponse>> findAll(
             @RequestParam(required = false) String author,
             @RequestParam(defaultValue = "10") int limit
     ) {
-        List<BookResponse> books = mapper.toResponseList(
-                service.findAll(author)
-        );
+        List<BookResponse> books =
+                mapper.toResponseList(service.findAll(author));
 
         return ResponseEntity.ok(
                 books.stream()
@@ -65,30 +76,47 @@ public class BookRestController {
         );
     }
 
-    // Lab 7, Variant 1: Pagination
+    // Lab 08: PostgreSQL pagination and sorting
     @Operation(
-            summary = "Get books with pagination",
-            description = "Returns the requested page, page size, total book count and content"
+            summary = "Get books with database pagination",
+            description = "Pagination and sorting using Spring Data JPA and PostgreSQL"
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Page returned"),
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Page returned successfully"
+            ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid page or size",
+                    description = "Invalid pagination or sorting",
                     content = @Content(
-                            schema = @Schema(implementation = ProblemDetail.class)
+                            schema = @Schema(
+                                    implementation = ProblemDetail.class
+                            )
                     )
             )
     })
     @GetMapping(params = "page")
-    public ResponseEntity<Map<String, Object>> getBooksPage(
-            @Parameter(description = "Page number starting from zero", example = "0")
+    public ResponseEntity<Page<BookResponse>> getBooksPage(
+            @Parameter(
+                    description = "Page number, starting from zero",
+                    example = "0"
+            )
             @RequestParam int page,
 
-            @Parameter(description = "Number of books per page", example = "2")
-            @RequestParam(defaultValue = "2") int size,
+            @Parameter(
+                    description = "Number of books on one page",
+                    example = "3"
+            )
+            @RequestParam(defaultValue = "5") int size,
 
-            @RequestParam(required = false) String author
+            @Parameter(
+                    description = "Sorting field and direction",
+                    example = "year,desc"
+            )
+            @RequestParam(defaultValue = "title,asc") String sort,
+
+            @RequestParam(required = false) Genre genre
     ) {
         if (page < 0 || size < 1) {
             throw new IllegalArgumentException(
@@ -96,65 +124,101 @@ public class BookRestController {
             );
         }
 
-        List<BookResponse> allBooks =
-                mapper.toResponseList(service.findAll(author));
+        String[] sortParts = sort.split(",", -1);
 
-        long total = allBooks.size();
-        long start = (long) page * size;
+        if (sortParts.length > 2
+                || sortParts[0].isBlank()
+                || !ALLOWED_SORT_FIELDS.contains(sortParts[0])) {
+            throw new IllegalArgumentException(
+                    "Invalid sorting field: " + sort
+            );
+        }
 
-        List<BookResponse> content = start >= total
-                ? List.of()
-                : allBooks.subList(
-                (int) start,
-                (int) Math.min(start + size, total)
+        String direction = sortParts.length == 2
+                ? sortParts[1]
+                : "asc";
+
+        if (!direction.equalsIgnoreCase("asc")
+                && !direction.equalsIgnoreCase("desc")) {
+            throw new IllegalArgumentException(
+                    "Sort direction must be asc or desc"
+            );
+        }
+
+        Sort sorting = Sort.by(
+                Sort.Direction.fromString(direction),
+                sortParts[0]
         );
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("page", page);
-        result.put("size", size);
-        result.put("total", total);
-        result.put("content", content);
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                sorting
+        );
+
+        Page<BookResponse> result = service.find(genre, pageable)
+                .map(mapper::toResponse);
 
         return ResponseEntity.ok(result);
     }
 
     @Operation(
             summary = "Find a book by its identifier",
-            description = "Returns one book or a ProblemDetail if the book does not exist"
+            description = "Returns a book or a 404 ProblemDetail"
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "The book was found"),
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "The book was found"
+            ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "No book with this ID",
+                    description = "Book not found",
                     content = @Content(
-                            schema = @Schema(implementation = ProblemDetail.class)
+                            schema = @Schema(
+                                    implementation = ProblemDetail.class
+                            )
                     )
             )
     })
     @GetMapping("/{id}")
     public ResponseEntity<BookResponse> findById(
-            @Parameter(description = "Identifier of the book", example = "42")
+            @Parameter(
+                    description = "Book identifier",
+                    example = "1"
+            )
             @PathVariable Long id
     ) {
         Book book = service.requireById(id);
-
         return ResponseEntity.ok(mapper.toResponse(book));
     }
 
     @Operation(summary = "Create a new book")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Book created with Location header"),
-            @ApiResponse(responseCode = "400", description = "Invalid book data"),
-            @ApiResponse(responseCode = "409", description = "Duplicate book")
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Book created with Location header"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid book data"
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Duplicate book"
+            )
     })
     @PostMapping
     public ResponseEntity<BookResponse> create(
             @Valid @RequestBody BookRequest request
     ) {
-        Book created = service.create(mapper.toDomain(request));
+        Book created = service.create(
+                mapper.toDomain(request)
+        );
 
-        URI location = URI.create("/api/books/" + created.id());
+        URI location = URI.create(
+                "/api/books/" + created.id()
+        );
 
         return ResponseEntity.created(location)
                 .body(mapper.toResponse(created));
@@ -162,10 +226,22 @@ public class BookRestController {
 
     @Operation(summary = "Replace an existing book")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Book updated"),
-            @ApiResponse(responseCode = "400", description = "Invalid book data"),
-            @ApiResponse(responseCode = "404", description = "Book not found"),
-            @ApiResponse(responseCode = "409", description = "Duplicate book")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Book updated"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid book data"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Book not found"
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Duplicate book"
+            )
     })
     @PutMapping("/{id}")
     public ResponseEntity<BookResponse> replace(
@@ -177,13 +253,21 @@ public class BookRestController {
                 mapper.toDomain(request)
         );
 
-        return ResponseEntity.ok(mapper.toResponse(updated));
+        return ResponseEntity.ok(
+                mapper.toResponse(updated)
+        );
     }
 
     @Operation(summary = "Delete a book")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Book deleted"),
-            @ApiResponse(responseCode = "404", description = "Book not found")
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Book deleted"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Book not found"
+            )
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
@@ -196,15 +280,24 @@ public class BookRestController {
         return ResponseEntity.noContent().build();
     }
 
-    // PATCH from previous laboratory work
+    // PATCH functionality from Lab 6
     @Operation(
             summary = "Partially update a book",
-            description = "Changes only the provided fields, preserving the others"
+            description = "Only the supplied fields are updated"
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Book partially updated"),
-            @ApiResponse(responseCode = "404", description = "Book not found"),
-            @ApiResponse(responseCode = "409", description = "Duplicate book")
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Book partially updated"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Book not found"
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Duplicate book"
+            )
     })
     @PatchMapping("/{id}")
     public ResponseEntity<BookResponse> patch(
@@ -216,6 +309,8 @@ public class BookRestController {
         return service.patch(id, patch)
                 .map(mapper::toResponse)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseGet(
+                        () -> ResponseEntity.notFound().build()
+                );
     }
 }
