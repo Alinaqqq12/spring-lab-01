@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title th:text="${title}">Catalogue</title>
+
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+
+    <style>
+        .catalogue-actions {
+            margin: 25px 0;
+        }
+
+        .add-book-button {
+            display: inline-block;
+            padding: 12px 22px;
+            background-color: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 7px;
+            font-weight: 600;
+        }
+
+        .add-book-button:hover {
+            background-color: #1d4ed8;
+            color: white;
+        }
+
+        .table-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .table-actions a {
+            text-decoration: none;
+        }
+
+        .table-actions a:hover {
+            text-decoration: underline;
+        }
+
+        .empty-message {
+            margin-top: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1 th:text="${title}">Catalogue</h1>
+
+    <p>Spring MVC Book Catalogue</p>
+
+    <!-- Success message after creating or editing a book -->
+    <div class="success-message"
+         th:if="${message != null}"
+         th:text="${message}">
+        Book has been saved successfully.
+    </div>
+
+    <!-- Link to the validated Lab 6 form -->
+    <div class="catalogue-actions">
+        <a class="add-book-button"
+           th:href="@{/books/new}">
+            + Добавить книгу
+        </a>
+    </div>
+
+    <!-- Search by author -->
+    <h2>Books</h2>
+
+    <form method="get" th:action="@{/books}">
+
+        <label for="author">Filter by author:</label>
+
+        <input
+                type="text"
+                id="author"
+                name="author"
+                th:value="${author}"
+                placeholder="Enter author name"
+        >
+
+        <button type="submit">Search</button>
+
+        <a th:href="@{/books}">Reset</a>
+
+    </form>
+
+    <br>
+
+    <!-- Catalogue table -->
+    <table>
+
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Year</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="book : ${books}">
+
+            <td th:text="${book.id}">1</td>
+
+            <td th:text="${book.title}">
+                Book title
+            </td>
+
+            <td th:text="${book.author}">
+                Author
+            </td>
+
+            <td th:text="${book.year}">
+                2026
+            </td>
+
+            <td>
+                <div class="table-actions">
+
+                    <a th:href="@{/books/{id}(id=${book.id})}">
+                        Просмотр
+                    </a>
+
+                    <a th:href="@{/books/{id}/edit(id=${book.id})}">
+                        Редактировать
+                    </a>
+
+                </div>
+            </td>
+
+        </tr>
+        </tbody>
+
+    </table>
+
+    <p class="empty-message"
+       th:if="${#lists.isEmpty(books)}">
+        No books found.
+    </p>
+
+</div>
+
+</body>
+</html>
