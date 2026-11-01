@@ -19,6 +19,7 @@ logging:
   level:
     kz.iitu: DEBUG
     org.hibernate.stat: WARN
+    org.flywaydb: INFO
 
 spring:
   jpa:

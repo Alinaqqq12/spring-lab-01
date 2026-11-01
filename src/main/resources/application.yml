@@ -3,21 +3,26 @@ spring:
   application:
     name: spring-lab
 
-  # Lab 08: PostgreSQL connection
+  # Lab 09: PostgreSQL database
   datasource:
-    url: jdbc:postgresql://localhost:5432/springlab
+    url: jdbc:postgresql://localhost:5432/springlab9
     username: springlab
     password: springlab
 
-  # Lab 08: JPA and Hibernate
+  # Lab 09: JPA and Hibernate
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+
+  # Lab 09: Database migrations
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
 server:
   port: 8080
