@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title th:text="${editMode} ? 'Edit book' : #{book.new}">
+        Book form
+    </title>
+
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+
+    <style>
+        .book-form {
+            max-width: 600px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .form-group input:not([type="checkbox"]),
+        .form-group select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        .error {
+            color: #c62828;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .is-invalid {
+            border: 2px solid #c62828 !important;
+        }
+
+        .error-summary {
+            background: #fff0f0;
+            border: 1px solid #e57373;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            color: #b71c1c;
+        }
+
+        .checkbox-label {
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .submit-button {
+            padding: 10px 22px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1 th:text="${editMode} ? 'Edit book' : #{book.new}">
+        Book form
+    </h1>
+
+    <p>
+        <a th:href="@{/books/new(lang='en')}">English</a>
+        |
+        <a th:href="@{/books/new(lang='ru')}">Русский</a>
+    </p>
+
+    <p>
+        <a th:href="@{/books}">Back to catalogue</a>
+    </p>
+
+    <form class="book-form"
+          th:action="${editMode} ? @{/books/{bookId}/edit(bookId=${pathId})} : @{/books}"
+          th:object="${form}"
+          method="post"
+          novalidate>
+
+        <div class="error-summary"
+             th:if="${#fields.hasAnyErrors()}">
+            Please correct the errors below.
+        </div>
+
+        <input type="hidden" th:field="*{id}">
+
+        <div class="error"
+             th:if="${#fields.hasErrors('id')}"
+             th:errors="*{id}">
+        </div>
+
+        <div class="form-group">
+            <label for="title" th:text="#{book.title}">
+                Title
+            </label>
+
+            <input type="text"
+                   id="title"
+                   th:field="*{title}"
+                   th:errorclass="is-invalid"
+                   placeholder="Enter book title">
+
+            <div class="error"
+                 th:if="${#fields.hasErrors('title')}"
+                 th:errors="*{title}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="author" th:text="#{book.author}">
+                Author
+            </label>
+
+            <input type="text"
+                   id="author"
+                   th:field="*{author}"
+                   th:errorclass="is-invalid"
+                   placeholder="Enter author">
+
+            <div class="error"
+                 th:if="${#fields.hasErrors('author')}"
+                 th:errors="*{author}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="year" th:text="#{book.year}">
+                Year
+            </label>
+
+            <input type="number"
+                   id="year"
+                   th:field="*{year}"
+                   th:errorclass="is-invalid">
+
+            <div class="error"
+                 th:if="${#fields.hasErrors('year')}"
+                 th:errors="*{year}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="genre" th:text="#{book.genre}">
+                Genre
+            </label>
+
+            <select id="genre"
+                    th:field="*{genre}"
+                    th:errorclass="is-invalid">
+
+                <option value="">-- Select genre --</option>
+
+                <option th:each="genre : ${genres}"
+                        th:value="${genre}"
+                        th:text="${genre}">
+                </option>
+            </select>
+
+            <div class="error"
+                 th:if="${#fields.hasErrors('genre')}"
+                 th:errors="*{genre}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" th:field="*{available}">
+                Available
+            </label>
+        </div>
+
+        <button class="submit-button"
+                type="submit"
+                th:text="${editMode} ? 'Update book' : #{form.submit}">
+            Save
+        </button>
+
+    </form>
+</div>
+</body>
+</html>
