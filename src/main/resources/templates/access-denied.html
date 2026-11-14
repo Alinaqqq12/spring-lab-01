@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><meta charset="UTF-8"><title>403 - Access Denied</title>
+<style>body{font-family:Arial,sans-serif;background:#f8fafc;display:grid;place-items:center;min-height:90vh}.box{padding:35px 45px;background:white;border:1px solid #e2e8f0;border-radius:15px;text-align:center}h1{color:#dc2626;font-size:44px}a{color:#2563eb}</style>
+</head><body><main class="box"><h1>403 - Access Denied</h1>
+<p>You do not have permission to access this page.</p>
+<p>Signed in as: <strong sec:authentication="name">user</strong></p>
+<a th:href="@{/books}">Back to catalogue</a>
+<form th:action="@{/logout}" method="post" style="margin-top:15px"><button type="submit">Log out</button></form>
+</main></body></html>

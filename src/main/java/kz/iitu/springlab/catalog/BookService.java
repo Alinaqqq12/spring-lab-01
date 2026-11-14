@@ -94,6 +94,7 @@ public class BookService {
     }
 
     @Transactional
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public boolean delete(Long id) {
         if (!repository.existsById(id)) {
             return false;
